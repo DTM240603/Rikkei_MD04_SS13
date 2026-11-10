@@ -15,6 +15,7 @@ import ra.edu.hw.md04.ss13.dto.request.RegisterRequest;
 import ra.edu.hw.md04.ss13.dto.response.UserResponse;
 import ra.edu.hw.md04.ss13.entity.User;
 import ra.edu.hw.md04.ss13.repository.UserRepository;
+import ra.edu.hw.md04.ss13.security.JwtUtil;
 
 import java.util.Arrays;
 
@@ -23,7 +24,8 @@ import static org.mockito.Mockito.mock;
 class UserServiceTest {
     private final UserRepository userRepository = mock(UserRepository.class);
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private final UserService userService = new UserService(userRepository, passwordEncoder);
+    private final JwtUtil jwtUtil = mock(JwtUtil.class);
+    private final UserService userService = new UserService(userRepository, passwordEncoder, jwtUtil);
 
     @Test
     void registerStoresHashedPasswordAndReturnsSafeUserDetails() {
