@@ -3,10 +3,13 @@ package ra.edu.hw.md04.ss13.service;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import ra.edu.hw.md04.ss13.dto.request.LoginRequest;
 import ra.edu.hw.md04.ss13.dto.request.RegisterRequest;
+import ra.edu.hw.md04.ss13.dto.response.LoginResponse;
 import ra.edu.hw.md04.ss13.dto.response.UserResponse;
 import ra.edu.hw.md04.ss13.entity.User;
 import ra.edu.hw.md04.ss13.repository.UserRepository;
@@ -45,5 +48,16 @@ public class UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return jwtUtil.generateToken(user);
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new BadCredentialsException("Bad credentials"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new BadCredentialsException("Bad credentials");
+        }
+
+        return new LoginResponse(jwtUtil.generateToken(user));
     }
 }

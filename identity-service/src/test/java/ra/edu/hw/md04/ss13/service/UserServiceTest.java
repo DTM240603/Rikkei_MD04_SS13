@@ -9,8 +9,10 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+import ra.edu.hw.md04.ss13.dto.request.LoginRequest;
 import ra.edu.hw.md04.ss13.dto.request.RegisterRequest;
 import ra.edu.hw.md04.ss13.dto.response.UserResponse;
 import ra.edu.hw.md04.ss13.entity.User;
@@ -18,6 +20,7 @@ import ra.edu.hw.md04.ss13.repository.UserRepository;
 import ra.edu.hw.md04.ss13.security.JwtUtil;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 
@@ -58,5 +61,40 @@ class UserServiceTest {
                 () -> userService.register(new RegisterRequest("alice", "password", "USER")));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
+    }
+
+    @Test
+    void loginWithValidCredentialsReturnsJwt() {
+        User user = new User("user-id", "alice", passwordEncoder.encode("correct-password"), "ROLE_USER");
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(jwtUtil.generateToken(user)).thenReturn("signed.jwt.token");
+
+        var response = userService.login(new LoginRequest("alice", "correct-password"));
+
+        assertEquals("signed.jwt.token", response.token());
+        verify(jwtUtil).generateToken(user);
+    }
+
+    @Test
+    void loginRejectsUnknownUsernameWithGenericBadCredentials() {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        BadCredentialsException exception = assertThrows(
+                BadCredentialsException.class,
+                () -> userService.login(new LoginRequest("unknown", "wrong-password")));
+
+        assertEquals("Bad credentials", exception.getMessage());
+    }
+
+    @Test
+    void loginRejectsWrongPasswordWithGenericBadCredentials() {
+        User user = new User("user-id", "alice", passwordEncoder.encode("correct-password"), "ROLE_USER");
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+
+        BadCredentialsException exception = assertThrows(
+                BadCredentialsException.class,
+                () -> userService.login(new LoginRequest("alice", "wrong-password")));
+
+        assertEquals("Bad credentials", exception.getMessage());
     }
 }
